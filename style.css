@@ -1,0 +1,203 @@
+/* =========================================
+   ESTILOS GENERALES Y RESET
+   ========================================= */
+* {
+    box-sizing: border-box; /* Crucial para que el padding no sume ancho */
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #d75a4a;
+    color: #333;
+    overflow-x: hidden; /* Evita cualquier deslizamiento lateral */
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px;
+    width: 100%;
+}
+
+/* =========================================
+   CABECERA Y PESTAÑAS
+   ========================================= */
+.tabs {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.logo-image {
+    width: 160px;
+    margin: 0 auto 10px;
+    display: block;
+}
+
+.tab-button {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 2px;
+}
+
+/* =========================================
+   FILTROS (HORARIOS) - SIEMPRE EN LÍNEA
+   ========================================= */
+.filters {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.filters div {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Permite que el flex-item se encoja */
+}
+
+.filters label {
+    color: white;
+    font-weight: bold;
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+.filters select {
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    border: none;
+    font-size: 14px;
+    height: 40px;
+    background-color: white;
+}
+
+/* =========================================
+   TARJETAS DE TURNOS
+   ========================================= */
+#turnos-container {
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.dia-card h3 {
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 8px;
+    color: #d75a4a;
+    font-size: 1.1em;
+}
+
+.turno {
+    background-color: #8b1e1e;
+    color: white;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.turno.Frankenstein { background-color: #4caf50; }
+.turno.Escuela-de-Magia { background-color: #7b4fa3; }
+.turno.Filosofal { background-color: #c96aa5; }
+.turno.Vacaciones { background-color: #4f83cc; }
+
+.turno-info { flex: 1; min-width: 0; }
+.turno-info h4 { margin: 0; font-size: 1em; }
+.turno-info p { margin: 2px 0; font-size: 0.85em; }
+
+.trabajador-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid white;
+}
+
+/* =========================================
+   FORMULARIOS (ADMIN) - EL ARREGLO DEFINITIVO
+   ========================================= */
+#registro form, 
+.delete-block {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 0 auto 20px;
+    width: 100%;
+    max-width: 100%; /* No permite que sea más ancho que la pantalla */
+    display: block;
+}
+
+#registro label, 
+.delete-block label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* RESET TOTAL PARA INPUTS Y SELECTS */
+#registro input, 
+#registro select, 
+#registro textarea,
+.delete-block input,
+.delete-block select {
+    display: block;
+    width: 100% !important; /* Forzamos el 100% */
+    max-width: 100% !important;
+    min-width: 0;
+    margin-top: 5px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px; 
+    height: 45px;
+    appearance: none; /* Quita estilos de sistema en iOS */
+    -webkit-appearance: none;
+    background-color: #fff;
+}
+
+/* Ajuste específico para el textarea */
+#registro textarea {
+    height: auto;
+    min-height: 80px;
+}
+
+#registro button, 
+#delete-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    background: #000;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    height: 50px;
+}
+
+/* =========================================
+   MEDIA QUERIES (ESCRITORIO)
+   ========================================= */
+@media (min-width: 600px) {
+    .container { padding: 20px; }
+    .logo-image { width: 200px; }
+    #registro form, .delete-block { max-width: 500px; padding: 25px; }
+    .trabajador-img { width: 75px; height: 75px; }
+    .filters { justify-content: center; gap: 30px; }
+    .filters div { flex: none; width: 200px; }
+}
