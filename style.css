@@ -19,6 +19,9 @@ body {
     margin: 0 auto;
     padding: 10px;
     width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* =========================================
@@ -89,6 +92,17 @@ body {
     background: white;
     border-radius: 12px;
     padding: 15px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+#turnos {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
 
 .dia-card h3 {
