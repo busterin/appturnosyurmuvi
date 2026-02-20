@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . "/../auth.php";
+require_auth();
+
 require "config.php";
 
 $data = json_decode(file_get_contents("php://input"), true);

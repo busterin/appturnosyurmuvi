@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . "/../auth.php";
+require_auth();
+
 require "config.php";
 require "fpdf/fpdf.php";
 

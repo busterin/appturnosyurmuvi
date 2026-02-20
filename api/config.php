@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . "/../auth.php";
+require_auth();
+
 // api/config.php
 
 $host = "db5019476862.hosting-data.io";

@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . "/../auth.php";
+require_auth();
+
 require "config.php";
 
 header("Content-Type: application/json; charset=UTF-8");
