@@ -71,8 +71,12 @@ body {
 .filters label {
     color: white;
     font-weight: bold;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     font-size: 13px;
+}
+
+.filters br {
+    display: none;
 }
 
 .filters select {
