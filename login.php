@@ -41,11 +41,23 @@ if (is_authenticated()) {
         body {
             margin: 0;
             min-height: 100vh;
-            display: grid;
-            place-items: center;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #d75a4a;
-            padding: 20px;
+            padding: 10px;
+        }
+        .login-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .logo-wrap {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-image {
+            width: 160px;
+            margin: 0 auto 10px;
+            display: block;
         }
         .login-card {
             width: 100%;
@@ -53,11 +65,7 @@ if (is_authenticated()) {
             background: #fff;
             border-radius: 12px;
             padding: 24px;
-        }
-        .logo-image {
-            width: 180px;
-            margin: 0 auto 16px;
-            display: block;
+            margin: 0 auto;
         }
         h1 {
             margin: 0 0 16px;
@@ -108,28 +116,37 @@ if (is_authenticated()) {
             margin-bottom: 12px;
             font-size: 14px;
         }
+        @media (min-width: 600px) {
+            body { padding: 20px; }
+            .logo-image { width: 200px; }
+        }
     </style>
 </head>
 <body>
-    <form class="login-card" method="post" action="/login.php">
-        <img src="/images/logoyurmuvi.PNG" class="logo-image" alt="Logo">
-        <h1>Acceso</h1>
-
-        <?php if ($error !== ''): ?>
-            <div class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
-        <?php endif; ?>
-
-        <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect, ENT_QUOTES, 'UTF-8'); ?>">
-
-        <label for="password">Contrasena</label>
-        <input id="password" name="password" type="password" required autocomplete="current-password">
-
-        <div class="remember">
-            <input id="remember" type="checkbox" name="remember" value="1">
-            <label for="remember">Recordar contrasena</label>
+    <div class="login-wrap">
+        <div class="logo-wrap">
+            <img src="/images/logoyurmuvi.PNG" class="logo-image" alt="Logo">
         </div>
 
-        <button type="submit">Entrar</button>
-    </form>
+        <form class="login-card" method="post" action="/login.php">
+            <h1>Acceso</h1>
+
+            <?php if ($error !== ''): ?>
+                <div class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
+            <?php endif; ?>
+
+            <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect, ENT_QUOTES, 'UTF-8'); ?>">
+
+            <label for="password">Contrasena</label>
+            <input id="password" name="password" type="password" required autocomplete="current-password">
+
+            <div class="remember">
+                <input id="remember" type="checkbox" name="remember" value="1">
+                <label for="remember">Recordar contrasena</label>
+            </div>
+
+            <button type="submit">Entrar</button>
+        </form>
+    </div>
 </body>
 </html>
