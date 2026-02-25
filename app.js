@@ -1,6 +1,13 @@
 const API_BASE = "/api";
 const IS_ADMIN = window.location.pathname.includes("/admin");
 
+let allShifts = [];
+let calendarCurrentMonth = (() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+})();
+let selectedCalendarDate = null;
+
 // =============================
 // UTILIDADES
 // =============================
@@ -8,21 +15,48 @@ function normalizar(txt) {
     return txt.toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function parseFechaLocal(fechaStr) {
+    const [y, m, d] = String(fechaStr).split("-").map(Number);
+    return new Date(y, m - 1, d);
+}
+
+function formatFechaKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
 function formatDiaTitulo(fechaStr) {
-    const fecha = new Date(fechaStr);
+    const fecha = parseFechaLocal(fechaStr);
     const dia = fecha.toLocaleDateString("es-ES", { weekday: "long" });
-    return dia.charAt(0).toUpperCase() + dia.slice(1) + " " + fecha.toLocaleDateString();
+    return dia.charAt(0).toUpperCase() + dia.slice(1) + " " + fecha.toLocaleDateString("es-ES");
+}
+
+function escaparHtml(texto) {
+    return String(texto ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 }
 
 function seleccionarMesActualPorDefecto() {
     const ahora = new Date();
     const inputMes = document.getElementById("mes-filter");
-    if(inputMes) inputMes.value = String(ahora.getMonth() + 1).padStart(2, "0");
+    if (inputMes) inputMes.value = String(ahora.getMonth() + 1).padStart(2, "0");
+}
+
+function getRutaImagenTurno(shift) {
+    const esPendiente = (shift.worker || "").trim() === "Monitor/a pendiente de confirmar";
+    return esPendiente ? "pendiente.PNG" : (shift.image || "default.png");
 }
 
 function showTab(tab) {
     document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
-    document.getElementById(tab).style.display = "block";
+    const tabEl = document.getElementById(tab);
+    if (tabEl) tabEl.style.display = "block";
 }
 
 // =============================
@@ -30,6 +64,8 @@ function showTab(tab) {
 // =============================
 function renderShifts(data) {
     const cont = document.getElementById("turnos-container");
+    if (!cont) return;
+
     cont.innerHTML = "";
     const dias = {};
     const trabajadoresSet = new Set();
@@ -59,8 +95,7 @@ function renderShifts(data) {
             if (ev === "filosofal") card.classList.add("Filosofal");
             if (ev === "vacaciones") card.classList.add("Vacaciones");
 
-            const esPendiente = s.worker.trim() === "Monitor/a pendiente de confirmar";
-            const rutaImagen = esPendiente ? "pendiente.PNG" : (s.image || "default.png");
+            const rutaImagen = getRutaImagenTurno(s);
 
             card.innerHTML = `
                 <div class="turno-info">
@@ -83,6 +118,164 @@ function renderShifts(data) {
 }
 
 // =============================
+// CALENDARIO
+// =============================
+function getCalendarShiftsByDate() {
+    const map = {};
+    allShifts.forEach(s => {
+        if (!map[s.shift_date]) map[s.shift_date] = [];
+        map[s.shift_date].push(s);
+    });
+    return map;
+}
+
+function renderCalendar() {
+    const grid = document.getElementById("calendar-grid");
+    const monthTitle = document.getElementById("calendar-month-title");
+    if (!grid || !monthTitle) return;
+
+    const shiftsByDate = getCalendarShiftsByDate();
+    const monthStart = new Date(calendarCurrentMonth.getFullYear(), calendarCurrentMonth.getMonth(), 1);
+    const monthText = monthStart.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+    monthTitle.textContent = monthText.charAt(0).toUpperCase() + monthText.slice(1);
+
+    grid.innerHTML = "";
+
+    const firstWeekday = (monthStart.getDay() + 6) % 7; // lunes = 0
+    const firstCellDate = new Date(monthStart);
+    firstCellDate.setDate(monthStart.getDate() - firstWeekday);
+
+    for (let i = 0; i < 42; i++) {
+        const cellDate = new Date(firstCellDate);
+        cellDate.setDate(firstCellDate.getDate() + i);
+
+        const dateKey = formatFechaKey(cellDate);
+        const dayShifts = (shiftsByDate[dateKey] || []).slice();
+        dayShifts.sort((a, b) => {
+            if (a.worker !== b.worker) return a.worker.localeCompare(b.worker, "es");
+            if (a.franja !== b.franja) return a.franja.localeCompare(b.franja, "es");
+            return a.event.localeCompare(b.event, "es");
+        });
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "calendar-day";
+        if (cellDate.getMonth() !== monthStart.getMonth()) btn.classList.add("is-outside");
+        if (dayShifts.length) btn.classList.add("has-shifts");
+        if (selectedCalendarDate === dateKey) btn.classList.add("is-selected");
+
+        btn.innerHTML = `
+            <div class="calendar-day-number">${cellDate.getDate()}</div>
+            <div class="calendar-day-avatars"></div>
+        `;
+
+        const avatarWrap = btn.querySelector(".calendar-day-avatars");
+        const workersMap = new Map();
+        dayShifts.forEach(shift => {
+            if (!workersMap.has(shift.worker)) {
+                workersMap.set(shift.worker, getRutaImagenTurno(shift));
+            }
+        });
+
+        const workersEntries = [...workersMap.entries()];
+        workersEntries.slice(0, 4).forEach(([worker, image]) => {
+            const img = document.createElement("img");
+            img.className = "calendar-avatar";
+            img.src = `/images/${image}`;
+            img.alt = worker;
+            img.title = worker;
+            img.onerror = () => { img.src = "/images/default.png"; };
+            avatarWrap.appendChild(img);
+        });
+
+        if (workersEntries.length > 4) {
+            const more = document.createElement("span");
+            more.className = "calendar-more";
+            more.textContent = `+${workersEntries.length - 4}`;
+            avatarWrap.appendChild(more);
+        }
+
+        btn.addEventListener("click", () => {
+            if (cellDate.getMonth() !== calendarCurrentMonth.getMonth() || cellDate.getFullYear() !== calendarCurrentMonth.getFullYear()) {
+                calendarCurrentMonth = new Date(cellDate.getFullYear(), cellDate.getMonth(), 1);
+            }
+            selectedCalendarDate = dateKey;
+            renderCalendar();
+            renderCalendarDayDetail(dateKey, shiftsByDate[dateKey] || []);
+        });
+
+        grid.appendChild(btn);
+    }
+
+    const detailPanel = document.getElementById("calendar-day-detail");
+    if (selectedCalendarDate && detailPanel && detailPanel.style.display !== "none") {
+        renderCalendarDayDetail(selectedCalendarDate, shiftsByDate[selectedCalendarDate] || []);
+    }
+}
+
+function renderCalendarDayDetail(dateKey, shifts) {
+    const panel = document.getElementById("calendar-day-detail");
+    const title = document.getElementById("calendar-day-detail-title");
+    const body = document.getElementById("calendar-day-detail-body");
+    if (!panel || !title || !body) return;
+
+    title.textContent = formatDiaTitulo(dateKey);
+    body.innerHTML = "";
+
+    if (!shifts.length) {
+        body.innerHTML = `<div class="calendar-empty">No hay turnos asignados para este día.</div>`;
+        panel.style.display = "block";
+        return;
+    }
+
+    const grouped = {};
+    shifts.forEach(s => {
+        if (!grouped[s.worker]) grouped[s.worker] = [];
+        grouped[s.worker].push(s);
+    });
+
+    Object.keys(grouped).sort((a, b) => a.localeCompare(b, "es")).forEach(worker => {
+        const workerShifts = grouped[worker].slice().sort((a, b) => {
+            if (a.franja !== b.franja) return a.franja.localeCompare(b.franja, "es");
+            return a.event.localeCompare(b.event, "es");
+        });
+
+        const card = document.createElement("div");
+        card.className = "calendar-detail-item";
+
+        const imageName = getRutaImagenTurno(workerShifts[0]);
+        card.innerHTML = `
+            <div class="calendar-detail-worker">
+                <img src="/images/${imageName}" alt="${escaparHtml(worker)}" onerror="this.src='/images/default.png'">
+                <span>${escaparHtml(worker)}</span>
+            </div>
+            ${workerShifts.map(s => `
+                <p><strong>${escaparHtml(normalizar(s.event) === "escuela de magia" ? "Magia" : s.event)}</strong> · ${escaparHtml(s.franja)}</p>
+                ${s.notes ? `<p>${escaparHtml(s.notes)}</p>` : ""}
+            `).join("")}
+        `;
+
+        body.appendChild(card);
+    });
+
+    panel.style.display = "block";
+}
+
+function hideCalendarDayDetail() {
+    const panel = document.getElementById("calendar-day-detail");
+    if (panel) panel.style.display = "none";
+}
+
+function moveCalendarMonth(delta) {
+    calendarCurrentMonth = new Date(
+        calendarCurrentMonth.getFullYear(),
+        calendarCurrentMonth.getMonth() + delta,
+        1
+    );
+    renderCalendar();
+}
+
+// =============================
 // FILTROS VISTA USUARIO
 // =============================
 function rellenarFiltroTrabajadores(lista) {
@@ -100,12 +293,18 @@ function rellenarFiltroTrabajadores(lista) {
 async function loadShifts() {
     const res = await fetch(`${API_BASE}/get_shifts.php`);
     const data = await res.json();
+    allShifts = data;
     renderShifts(data);
+    renderCalendar();
 }
 
 function filterTurnos() {
-    const t = document.getElementById("trabajador-filter").value;
-    const m = document.getElementById("mes-filter").value;
+    const tFilter = document.getElementById("trabajador-filter");
+    const mFilter = document.getElementById("mes-filter");
+    if (!tFilter || !mFilter) return;
+
+    const t = tFilter.value;
+    const m = mFilter.value;
     document.querySelectorAll(".dia-card").forEach(dia => {
         const mes = dia.id.split("-")[1];
         let visible = false;
@@ -132,7 +331,7 @@ function updateDeleteList() {
     let hayTurnos = false;
 
     document.querySelectorAll(".dia-card").forEach(dia => {
-        const fechaDia = dia.id; 
+        const fechaDia = dia.id;
         const mesAnioDia = fechaDia.substring(0, 7);
         if (!monthFilter || mesAnioDia === monthFilter) {
             dia.querySelectorAll(".turno").forEach(turno => {
@@ -158,28 +357,22 @@ async function loadWorkers() {
     const res = await fetch(`${API_BASE}/get_workers.php`);
     const data = await res.json();
     const select = document.getElementById("trabajador");
-    
+    if (!select) return;
+
     select.innerHTML = "";
-    
+
     const prioridad = ["Gori", "Rober", "Paula MC", "Paula AS"];
     const nombres = data.map(w => w.name);
-    
-    // 1. Añadimos prioritarios (Gori será el primero)
-    prioridad.forEach(n => { 
-        if (nombres.includes(n)) select.add(new Option(n, n)); 
+
+    prioridad.forEach(n => {
+        if (nombres.includes(n)) select.add(new Option(n, n));
     });
 
-    // 2. Añadimos resto de nombres
     nombres.filter(n => !prioridad.includes(n) && n !== "Monitor/a pendiente de confirmar")
-           .forEach(n => select.add(new Option(n, n)));
-    
-    // 3. Añadimos el pendiente casi al final
-    select.add(new Option("Monitor/a pendiente de confirmar", "Monitor/a pendiente de confirmar"));
+        .forEach(n => select.add(new Option(n, n)));
 
-    // 4. Opción para añadir nuevos
+    select.add(new Option("Monitor/a pendiente de confirmar", "Monitor/a pendiente de confirmar"));
     select.add(new Option("+ Añadir monitor/a nuevo", "__nuevo__"));
-    
-    // FORZAR QUE EL PRIMERO (GORI) ESTÉ SELECCIONADO POR DEFECTO
     select.selectedIndex = 0;
 }
 
@@ -187,12 +380,17 @@ async function loadEvents() {
     const res = await fetch(`${API_BASE}/get_events.php`);
     const data = await res.json();
     const select = document.getElementById("turno");
+    if (!select) return;
+
     select.innerHTML = "";
     let magiaAñadida = false;
     data.forEach(e => {
         const norm = normalizar(e.name);
         if (norm === "frankenstein") select.add(new Option("Frankenstein", e.name));
-        if (norm === "escuela de magia" && !magiaAñadida) { select.add(new Option("Magia", e.name)); magiaAñadida = true; }
+        if (norm === "escuela de magia" && !magiaAñadida) {
+            select.add(new Option("Magia", e.name));
+            magiaAñadida = true;
+        }
         if (norm === "filosofal") select.add(new Option("Filosofal", e.name));
         if (norm === "vacaciones") select.add(new Option("Vacaciones", e.name));
     });
@@ -209,15 +407,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!IS_ADMIN) {
         document.querySelectorAll('[onclick*="registro"]').forEach(b => b.style.display = "none");
-        document.getElementById("registro").style.display = "none";
+        const registroTab = document.getElementById("registro");
+        if (registroTab) registroTab.style.display = "none";
     }
 
     const tFilter = document.getElementById("trabajador-filter");
     const mFilter = document.getElementById("mes-filter");
-    if(tFilter) tFilter.addEventListener("change", filterTurnos);
-    if(mFilter) mFilter.addEventListener("change", filterTurnos);
+    if (tFilter) tFilter.addEventListener("change", filterTurnos);
+    if (mFilter) mFilter.addEventListener("change", filterTurnos);
 
-    flatpickr("#dia", { dateFormat: "Y-m-d" });
+    const prevBtn = document.getElementById("calendar-prev");
+    const nextBtn = document.getElementById("calendar-next");
+    const closeDetailBtn = document.getElementById("calendar-day-detail-close");
+    if (prevBtn) prevBtn.addEventListener("click", () => moveCalendarMonth(-1));
+    if (nextBtn) nextBtn.addEventListener("click", () => moveCalendarMonth(1));
+    if (closeDetailBtn) closeDetailBtn.addEventListener("click", hideCalendarDayDetail);
+
+    if (document.getElementById("dia") && typeof flatpickr !== "undefined") {
+        flatpickr("#dia", { dateFormat: "Y-m-d" });
+    }
+
     await loadShifts();
     seleccionarMesActualPorDefecto();
     filterTurnos();
@@ -228,64 +437,77 @@ document.addEventListener("DOMContentLoaded", async () => {
     const deleteMonthFilter = document.getElementById("delete-month-filter");
     const trabajadorSelect = document.getElementById("trabajador");
     const turnoSelect = document.getElementById("turno");
+    const turnoForm = document.getElementById("turno-form");
+    const deleteBtn = document.getElementById("delete-btn");
 
     await loadWorkers();
     await loadEvents();
 
-    deleteMonthFilter.addEventListener("change", updateDeleteList);
+    if (deleteMonthFilter) deleteMonthFilter.addEventListener("change", updateDeleteList);
 
-    trabajadorSelect.addEventListener("change", () => {
-        if (trabajadorSelect.value !== "__nuevo__") return;
-        const nombre = prompt("Nombre del nuevo monitor/a:");
-        if (!nombre) {
-            trabajadorSelect.selectedIndex = 0; // Volver al primero si cancela
-            return;
-        }
-        trabajadorSelect.add(new Option(nombre, nombre), trabajadorSelect.length - 1);
-        trabajadorSelect.value = nombre;
-    });
-
-    turnoSelect.addEventListener("change", () => {
-        if (turnoSelect.value !== "__nuevo_turno__") return;
-        const nombre = prompt("Nombre del nuevo evento:");
-        if (!nombre) {
-            turnoSelect.selectedIndex = 0;
-            return;
-        }
-        turnoSelect.add(new Option(nombre, nombre), turnoSelect.length - 1);
-        turnoSelect.value = nombre;
-    });
-
-    document.getElementById("turno-form").addEventListener("submit", async e => {
-        e.preventDefault();
-        const fechaVal = document.getElementById("dia").value;
-        if(!fechaVal) { alert("Por favor, selecciona una fecha"); return; }
-
-        await fetch(`${API_BASE}/add_shift.php`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                worker: trabajadorSelect.value,
-                event: turnoSelect.value,
-                date: fechaVal,
-                franja: document.getElementById("franja").value,
-                notes: document.getElementById("observaciones").value.trim()
-            })
+    if (trabajadorSelect) {
+        trabajadorSelect.addEventListener("change", () => {
+            if (trabajadorSelect.value !== "__nuevo__") return;
+            const nombre = prompt("Nombre del nuevo monitor/a:");
+            if (!nombre) {
+                trabajadorSelect.selectedIndex = 0;
+                return;
+            }
+            trabajadorSelect.add(new Option(nombre, nombre), trabajadorSelect.length - 1);
+            trabajadorSelect.value = nombre;
         });
-        e.target.reset();
-        await loadWorkers(); // Recargar para asegurar que Gori vuelve a ser el seleccionado
-        showTab("turnos");
-        await loadShifts();
-    });
+    }
 
-    document.getElementById("delete-btn").addEventListener("click", async () => {
-        if (!deleteSelect.value) return;
-        if (!confirm("¿Eliminar turno?")) return;
-        await fetch(`${API_BASE}/delete_shift.php`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: deleteSelect.value })
+    if (turnoSelect) {
+        turnoSelect.addEventListener("change", () => {
+            if (turnoSelect.value !== "__nuevo_turno__") return;
+            const nombre = prompt("Nombre del nuevo evento:");
+            if (!nombre) {
+                turnoSelect.selectedIndex = 0;
+                return;
+            }
+            turnoSelect.add(new Option(nombre, nombre), turnoSelect.length - 1);
+            turnoSelect.value = nombre;
         });
-        await loadShifts();
-    });
+    }
+
+    if (turnoForm && trabajadorSelect && turnoSelect) {
+        turnoForm.addEventListener("submit", async e => {
+            e.preventDefault();
+            const fechaVal = document.getElementById("dia").value;
+            if (!fechaVal) {
+                alert("Por favor, selecciona una fecha");
+                return;
+            }
+
+            await fetch(`${API_BASE}/add_shift.php`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    worker: trabajadorSelect.value,
+                    event: turnoSelect.value,
+                    date: fechaVal,
+                    franja: document.getElementById("franja").value,
+                    notes: document.getElementById("observaciones").value.trim()
+                })
+            });
+            e.target.reset();
+            await loadWorkers();
+            showTab("turnos");
+            await loadShifts();
+        });
+    }
+
+    if (deleteBtn && deleteSelect) {
+        deleteBtn.addEventListener("click", async () => {
+            if (!deleteSelect.value) return;
+            if (!confirm("¿Eliminar turno?")) return;
+            await fetch(`${API_BASE}/delete_shift.php`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: deleteSelect.value })
+            });
+            await loadShifts();
+        });
+    }
 });

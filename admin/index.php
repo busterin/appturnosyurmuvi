@@ -22,6 +22,7 @@ require_auth();
         <img src="/images/logoyurmuvi.PNG" class="logo-image" alt="Logo">
         <button class="tab-button" onclick="showTab('turnos')">Horarios</button>
         <button class="tab-button" onclick="showTab('registro')">Registro</button>
+        <button class="tab-button" onclick="showTab('calendario')">Calendario</button>
     </div>
 
     <div id="turnos" class="tab-content">
@@ -52,6 +53,36 @@ require_auth();
             </div>
         </div>
         <div id="turnos-container"></div>
+    </div>
+
+    <div id="calendario" class="tab-content">
+        <div class="calendar-panel">
+            <div class="calendar-toolbar">
+                <button type="button" id="calendar-prev" class="calendar-nav-btn" aria-label="Mes anterior">◀</button>
+                <h2 id="calendar-month-title"></h2>
+                <button type="button" id="calendar-next" class="calendar-nav-btn" aria-label="Mes siguiente">▶</button>
+            </div>
+
+            <div class="calendar-weekdays">
+                <div>Lun</div>
+                <div>Mar</div>
+                <div>Mié</div>
+                <div>Jue</div>
+                <div>Vie</div>
+                <div>Sáb</div>
+                <div>Dom</div>
+            </div>
+
+            <div id="calendar-grid" class="calendar-grid"></div>
+        </div>
+
+        <div id="calendar-day-detail" class="calendar-day-detail" style="display:none;">
+            <div class="calendar-day-detail-header">
+                <h3 id="calendar-day-detail-title"></h3>
+                <button type="button" id="calendar-day-detail-close">Cerrar</button>
+            </div>
+            <div id="calendar-day-detail-body"></div>
+        </div>
     </div>
 
     <div id="registro" class="tab-content">
