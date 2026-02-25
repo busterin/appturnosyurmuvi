@@ -179,6 +179,7 @@ function renderCalendar() {
 
         const dateKey = formatFechaKey(cellDate);
         const dayShifts = (shiftsByDate[dateKey] || []).slice();
+        const todayKey = formatFechaKey(new Date());
         dayShifts.sort((a, b) => {
             if (a.worker !== b.worker) return a.worker.localeCompare(b.worker, "es");
             if (a.franja !== b.franja) return a.franja.localeCompare(b.franja, "es");
@@ -190,6 +191,7 @@ function renderCalendar() {
         btn.className = "calendar-day";
         if (cellDate.getMonth() !== monthStart.getMonth()) btn.classList.add("is-outside");
         if (dayShifts.length) btn.classList.add("has-shifts");
+        if (dateKey === todayKey) btn.classList.add("is-today");
         if (selectedCalendarDate === dateKey) btn.classList.add("is-selected");
 
         btn.innerHTML = `
