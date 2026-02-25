@@ -53,6 +53,34 @@ function getRutaImagenTurno(shift) {
     return esPendiente ? "pendiente.PNG" : (shift.image || "default.png");
 }
 
+function getClaseEvento(eventName) {
+    const ev = normalizar(eventName || "");
+    if (ev === "frankenstein") return "Frankenstein";
+    if (ev === "escuela de magia") return "Escuela-de-Magia";
+    if (ev === "filosofal") return "Filosofal";
+    if (ev === "vacaciones") return "Vacaciones";
+    return "";
+}
+
+function compareWorkersCalendarPriority(a, b) {
+    const prioridad = [
+        "Gori",
+        "Rober",
+        "Paula AS",
+        "Paula MC",
+        "Monitor/a pendiente de confirmar"
+    ];
+    const ia = prioridad.indexOf(a);
+    const ib = prioridad.indexOf(b);
+    const aPrioritario = ia !== -1;
+    const bPrioritario = ib !== -1;
+
+    if (aPrioritario && bPrioritario) return ia - ib;
+    if (aPrioritario) return -1;
+    if (bPrioritario) return 1;
+    return a.localeCompare(b, "es");
+}
+
 function showTab(tab) {
     document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
     const tabEl = document.getElementById(tab);
@@ -177,7 +205,9 @@ function renderCalendar() {
             }
         });
 
-        const workersEntries = [...workersMap.entries()];
+        const workersEntries = [...workersMap.entries()].sort((a, b) =>
+            compareWorkersCalendarPriority(a[0], b[0])
+        );
         workersEntries.slice(0, 4).forEach(([worker, image]) => {
             const img = document.createElement("img");
             img.className = "calendar-avatar";
@@ -224,7 +254,8 @@ function renderCalendarDayDetail(dateKey, shifts) {
 
     if (!shifts.length) {
         body.innerHTML = `<div class="calendar-empty">No hay turnos asignados para este día.</div>`;
-        panel.style.display = "block";
+        panel.style.display = "flex";
+        panel.setAttribute("aria-hidden", "false");
         return;
     }
 
@@ -249,21 +280,28 @@ function renderCalendarDayDetail(dateKey, shifts) {
                 <img src="/images/${imageName}" alt="${escaparHtml(worker)}" onerror="this.src='/images/default.png'">
                 <span>${escaparHtml(worker)}</span>
             </div>
+            <div class="calendar-detail-shifts">
             ${workerShifts.map(s => `
-                <p><strong>${escaparHtml(normalizar(s.event) === "escuela de magia" ? "Magia" : s.event)}</strong> · ${escaparHtml(s.franja)}</p>
-                ${s.notes ? `<p>${escaparHtml(s.notes)}</p>` : ""}
+                <div class="calendar-detail-shift ${getClaseEvento(s.event)}">
+                    <p><strong>${escaparHtml(normalizar(s.event) === "escuela de magia" ? "Magia" : s.event)}</strong> · ${escaparHtml(s.franja)}</p>
+                    ${s.notes ? `<p>${escaparHtml(s.notes)}</p>` : ""}
+                </div>
             `).join("")}
+            </div>
         `;
 
         body.appendChild(card);
     });
 
-    panel.style.display = "block";
+    panel.style.display = "flex";
+    panel.setAttribute("aria-hidden", "false");
 }
 
 function hideCalendarDayDetail() {
     const panel = document.getElementById("calendar-day-detail");
-    if (panel) panel.style.display = "none";
+    if (!panel) return;
+    panel.style.display = "none";
+    panel.setAttribute("aria-hidden", "true");
 }
 
 function moveCalendarMonth(delta) {
@@ -419,9 +457,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     const prevBtn = document.getElementById("calendar-prev");
     const nextBtn = document.getElementById("calendar-next");
     const closeDetailBtn = document.getElementById("calendar-day-detail-close");
+    const detailPanel = document.getElementById("calendar-day-detail");
     if (prevBtn) prevBtn.addEventListener("click", () => moveCalendarMonth(-1));
     if (nextBtn) nextBtn.addEventListener("click", () => moveCalendarMonth(1));
     if (closeDetailBtn) closeDetailBtn.addEventListener("click", hideCalendarDayDetail);
+    if (detailPanel) {
+        detailPanel.addEventListener("click", e => {
+            if (e.target === detailPanel) hideCalendarDayDetail();
+        });
+    }
+    document.addEventListener("keydown", e => {
+        if (e.key === "Escape") hideCalendarDayDetail();
+    });
 
     if (document.getElementById("dia") && typeof flatpickr !== "undefined") {
         flatpickr("#dia", { dateFormat: "Y-m-d" });

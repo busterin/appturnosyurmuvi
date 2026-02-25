@@ -348,10 +348,24 @@ body {
 }
 
 .calendar-day-detail {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 16px;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.calendar-day-detail-content {
+    width: 100%;
+    max-width: 560px;
+    max-height: min(80vh, 700px);
+    overflow-y: auto;
     background: white;
     border-radius: 12px;
     padding: 12px;
-    margin-top: 14px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
 }
 
 .calendar-day-detail-header {
@@ -405,6 +419,29 @@ body {
     font-size: 14px;
 }
 
+.calendar-detail-shifts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.calendar-detail-shift {
+    background: #8b1e1e;
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.calendar-detail-shift.Frankenstein { background-color: #4caf50; }
+.calendar-detail-shift.Escuela-de-Magia { background-color: #7b4fa3; }
+.calendar-detail-shift.Filosofal { background-color: #c96aa5; }
+.calendar-detail-shift.Vacaciones { background-color: #4f83cc; }
+
+.calendar-detail-shift p {
+    margin: 3px 0;
+    color: inherit;
+}
+
 /* =========================================
    MEDIA QUERIES (ESCRITORIO)
    ========================================= */
@@ -418,4 +455,5 @@ body {
     .calendar-day { min-height: 100px; }
     .calendar-avatar, .calendar-more { width: 26px; height: 26px; }
     .calendar-toolbar h2 { font-size: 1.2rem; }
+    .calendar-day-detail-content { padding: 16px; }
 }

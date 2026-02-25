@@ -83,12 +83,14 @@ require_auth();
             <div id="calendar-grid" class="calendar-grid"></div>
         </div>
 
-        <div id="calendar-day-detail" class="calendar-day-detail" style="display:none;">
-            <div class="calendar-day-detail-header">
-                <h3 id="calendar-day-detail-title"></h3>
-                <button type="button" id="calendar-day-detail-close">Cerrar</button>
+        <div id="calendar-day-detail" class="calendar-day-detail" style="display:none;" aria-hidden="true">
+            <div class="calendar-day-detail-content" role="dialog" aria-modal="true" aria-labelledby="calendar-day-detail-title">
+                <div class="calendar-day-detail-header">
+                    <h3 id="calendar-day-detail-title"></h3>
+                    <button type="button" id="calendar-day-detail-close">Cerrar</button>
+                </div>
+                <div id="calendar-day-detail-body"></div>
             </div>
-            <div id="calendar-day-detail-body"></div>
         </div>
     </div>
 
