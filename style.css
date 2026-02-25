@@ -299,6 +299,7 @@ body {
 }
 
 .calendar-day.is-today {
+    background: #fff7bf;
     border-color: #000;
     box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.12);
 }
